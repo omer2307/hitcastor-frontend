@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMarkets } from "@/hooks/useMarkets";
+import { Loader2 } from "lucide-react";
+import { getCoverImage } from "@/lib/images";
 const mockMarkets = [{
   id: 1,
   question: "Will 'Anti-Hero' by Taylor Swift improve its position on Spotify Global Top 50 by Mar 15, 2025?",
@@ -212,6 +215,9 @@ const Index = () => {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("spotify");
+  
+  // Fetch markets from API
+  const { data: marketsData, isLoading: marketsLoading, error: marketsError } = useMarkets('OPEN');
   const handleLoginClick = () => {
     setAuthMode("login");
     setAuthModalOpen(true);
@@ -237,7 +243,10 @@ const Index = () => {
               </h1>
               <p className="text-lg text-muted-foreground md:text-xl max-w-2xl mx-auto animate-fade-in">Predict music chart positions with nonstop real-time markets. </p>
               <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                <RainbowButton onClick={() => navigate("/market/1")}>
+                <RainbowButton onClick={() => {
+                  const firstMarket = marketsData?.markets?.[0]?.marketId || "2"
+                  navigate(`/market/${firstMarket}`)
+                }}>
                   Start Predicting
                 </RainbowButton>
                 <Button size="lg" variant="outline" className="text-base" onClick={() => navigate("/how-it-works")}>
@@ -283,7 +292,48 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {mockMarkets.map(market => <MarketCard key={market.id} {...market} onClick={() => navigate(`/market/${market.id}`)} />)}
+              {marketsLoading && (
+                <div className="col-span-full flex justify-center items-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading markets...</span>
+                </div>
+              )}
+              
+              {marketsError && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  Failed to load markets. Please try again later.
+                </div>
+              )}
+              
+              {marketsData?.markets?.map(market => {
+                // Transform API data to MarketCard format
+                const transformedMarket = {
+                  id: parseInt(market.marketId),
+                  question: `Will '${market.title}' by ${market.artist} improve its position on Spotify Global Top 50 by ${new Date(market.cutoffUtc).toLocaleDateString()}?`,
+                  songName: market.title,
+                  artist: market.artist,
+                  chart: "Spotify Global",
+                  startDate: "Mar 1",
+                  resolutionDate: new Date(market.cutoffUtc).toLocaleDateString(),
+                  yesPrice: Math.round(market.priceYes * 100),
+                  noPrice: Math.round(market.priceNo * 100),
+                  volume: `$${(market.poolUSD / 1000).toFixed(1)}K`,
+                  coverImage: getCoverImage(market.artist, market.title)
+                };
+                
+                return (
+                  <MarketCard 
+                    key={market.marketId} 
+                    {...transformedMarket} 
+                    onClick={() => navigate(`/market/${market.marketId}`)} 
+                  />
+                );
+              })}
+              
+              {/* Fallback to mock markets if API fails */}
+              {!marketsLoading && marketsError && mockMarkets.map(market => 
+                <MarketCard key={market.id} {...market} onClick={() => navigate(`/market/${market.id}`)} />
+              )}
             </div>
           </div>
         </section>

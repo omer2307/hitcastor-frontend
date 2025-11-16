@@ -101,9 +101,125 @@ export async function redeemTo(config: Config, amm: Address, to: Address){
   
   if (receipt.status === 'reverted') {
     console.error('❌ Redeem tx failed!', { hash, gasUsed: receipt.gasUsed.toString() })
+    
+    // Check if this is because market isn't resolved on-chain
+    try {
+      const outcome = await pc.readContract({
+        address: amm,
+        abi: MarketAbi.abi as any,
+        functionName: 'outcome'
+      })
+      if (outcome === 0) {
+        console.log('💡 Redeem failed because market is not resolved on-chain (outcome = 0)')
+        console.log('🧪 For testing: This would work if the market was properly resolved')
+        throw new Error('Redeem failed: Market not resolved on-chain yet. In production, wait for resolution job to complete.')
+      }
+    } catch (outcomeError) {
+      // Ignore outcome check errors
+    }
+    
     throw new Error(`Transaction failed: ${hash}`)
   }
   
   console.log('✅ Redeem tx confirmed!', { status: receipt.status, gasUsed: receipt.gasUsed.toString() })
   return hash
+}
+
+// Check market outcome
+export async function getMarketOutcome(amm: Address): Promise<number> {
+  try {
+    const outcome = await pc.readContract({
+      address: amm,
+      abi: MarketAbi.abi as any,
+      functionName: 'outcome'
+    })
+    return Number(outcome)
+  } catch (error) {
+    return 0 // UNRESOLVED
+  }
+}
+
+// Get market outcome from API (for testing when blockchain isn't resolved yet)
+export async function getMarketOutcomeFromAPI(marketId: string): Promise<number> {
+  try {
+    const response = await fetch(`http://localhost:8080/markets/${marketId}`)
+    const data = await response.json()
+    
+    // If API shows resolved status, check the resolution outcome
+    if (data.status === 'RESOLVED' && data.outcome !== null) {
+      return data.outcome
+    }
+    
+    // For testing: if status is RESOLVED but outcome is null, simulate YES wins
+    if (data.status === 'RESOLVED') {
+      console.log('🧪 TESTING MODE: Simulating resolved market with YES wins')
+      return 1 // Simulate YES wins for UI testing
+    }
+    
+    return 0 // UNRESOLVED
+  } catch (error) {
+    return 0
+  }
+}
+
+// Check if user has redeemed
+export async function hasUserRedeemed(amm: Address, user: Address): Promise<boolean> {
+  try {
+    const redeemed = await pc.readContract({
+      address: amm,
+      abi: MarketAbi.abi as any,
+      functionName: 'hasRedeemed',
+      args: [user]
+    })
+    return Boolean(redeemed)
+  } catch (error) {
+    return false
+  }
+}
+
+// Get token balances
+export async function getTokenBalance(token: Address, user: Address): Promise<bigint> {
+  try {
+    const balance = await pc.readContract({
+      address: token,
+      abi: [
+        {
+          name: 'balanceOf',
+          type: 'function',
+          stateMutability: 'view',
+          inputs: [{ type: 'address' }],
+          outputs: [{ type: 'uint256' }]
+        }
+      ],
+      functionName: 'balanceOf',
+      args: [user]
+    })
+    return BigInt(balance as any)
+  } catch (error) {
+    return 0n
+  }
+}
+
+// Get YES/NO token addresses
+export async function getTokenAddresses(amm: Address): Promise<{ yesToken: Address; noToken: Address }> {
+  try {
+    const [yesToken, noToken] = await Promise.all([
+      pc.readContract({
+        address: amm,
+        abi: MarketAbi.abi as any,
+        functionName: 'yesToken'
+      }),
+      pc.readContract({
+        address: amm,
+        abi: MarketAbi.abi as any,
+        functionName: 'noToken'
+      })
+    ])
+    return {
+      yesToken: yesToken as Address,
+      noToken: noToken as Address
+    }
+  } catch (error) {
+    throw new Error('Failed to get token addresses')
+  }
 }

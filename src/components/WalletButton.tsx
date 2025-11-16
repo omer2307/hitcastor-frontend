@@ -1,5 +1,7 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { injected } from 'wagmi/connectors'
+import { Button } from '@/components/ui/button'
+import { Wallet, LogOut } from 'lucide-react'
 
 export default function WalletButton(){
   const { address, isConnected } = useAccount()
@@ -8,18 +10,28 @@ export default function WalletButton(){
 
   if(isConnected) {
     return (
-      <button onClick={()=>disconnect()} className="px-3 py-1.5 rounded border">
-        {address?.slice(0,6)}…{address?.slice(-4)} — Disconnect
-      </button>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => disconnect()}
+        className="text-sm"
+      >
+        <Wallet className="h-4 w-4 mr-2" />
+        {address?.slice(0,6)}…{address?.slice(-4)}
+        <LogOut className="h-3 w-3 ml-2" />
+      </Button>
     )
   }
+  
   return (
-    <button
-      onClick={()=>connect({ connector: injected() })}
-      disabled={status==='pending'}
-      className="px-3 py-1.5 rounded border"
+    <Button
+      size="sm"
+      onClick={() => connect({ connector: injected() })}
+      disabled={status === 'pending'}
+      className="text-sm"
     >
-      {status==='pending' ? 'Connecting…' : 'Connect Wallet'}
-    </button>
+      <Wallet className="h-4 w-4 mr-2" />
+      {status === 'pending' ? 'Connecting…' : 'Connect Wallet'}
+    </Button>
   )
 }

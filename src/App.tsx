@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import HowItWorks from "./pages/HowItWorks";
 import Market from "./pages/Market";
 import MarketPage from "./pages/MarketPage"; // New blockchain-integrated page
+import BlockchainMarket from "./pages/BlockchainMarket"; // Enhanced UI with blockchain
 import DebugPage from "./pages/DebugPage"; // Debug page
 import TradeTest from "./pages/TradeTest"; // Trade test page
 import Portfolio from "./pages/Portfolio";
@@ -29,8 +30,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/market/:id" element={<Market />} />
-            <Route path="/trade/:id" element={<MarketPage />} /> {/* New blockchain route */}
+            <Route path="/market/:id" element={<BlockchainMarket />} /> {/* Enhanced UI with blockchain */}
+            <Route path="/market-old/:id" element={<Market />} /> {/* Original mock UI */}
+            <Route path="/trade/:id" element={<MarketPage />} /> {/* Simple blockchain route */}
             <Route path="/debug" element={<DebugPage />} /> {/* Debug route */}
             <Route path="/test" element={<TradeTest />} /> {/* Simple approve test */}
             <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />

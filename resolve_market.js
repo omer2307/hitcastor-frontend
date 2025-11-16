@@ -1,0 +1,90 @@
+import { createWalletClient, createPublicClient, http, parseAbi } from 'viem'
+import { bscTestnet } from 'viem/chains'
+import { privateKeyToAccount } from 'viem/accounts'
+
+const rpc = 'https://bsc-testnet.publicnode.com'
+const pc = createPublicClient({ chain: bscTestnet, transport: http(rpc) })
+
+// Admin private key from your environment
+const adminPrivateKey = '0x90b5e07a03ad94d89acf98f3c32df9f596fa32b86d8757388ca50895bc937352'
+const account = privateKeyToAccount(adminPrivateKey)
+
+const wc = createWalletClient({
+  account,
+  chain: bscTestnet,
+  transport: http(rpc)
+})
+
+const marketAbi = parseAbi([
+  'function outcome() view returns (uint8)',
+  'function resolve(uint8 _outcome) external',
+  'function owner() view returns (address)',
+  'function cutoff() view returns (uint256)'
+])
+
+async function resolveMarket(ammAddress, outcome) {
+  console.log(`🎯 Resolving market ${ammAddress} with outcome ${outcome}`)
+  
+  try {
+    // Check current state
+    const [currentOutcome, owner, cutoff] = await Promise.all([
+      pc.readContract({ address: ammAddress, abi: marketAbi, functionName: 'outcome' }),
+      pc.readContract({ address: ammAddress, abi: marketAbi, functionName: 'owner' }),
+      pc.readContract({ address: ammAddress, abi: marketAbi, functionName: 'cutoff' })
+    ])
+    
+    console.log('📊 Market State:')
+    console.log('  - Current outcome:', currentOutcome, currentOutcome === 0 ? '(UNRESOLVED)' : currentOutcome === 1 ? '(YES WINS)' : '(NO WINS)')
+    console.log('  - Owner:', owner)
+    console.log('  - Cutoff:', new Date(Number(cutoff) * 1000).toISOString())
+    console.log('  - Admin account:', account.address)
+    console.log('  - Current time:', new Date().toISOString())
+    
+    if (currentOutcome !== 0) {
+      console.log('❌ Market already resolved!')
+      return
+    }
+    
+    if (owner.toLowerCase() !== account.address.toLowerCase()) {
+      console.log('❌ Admin account is not the owner!')
+      return
+    }
+    
+    // Resolve the market
+    console.log(`🔄 Calling resolve(${outcome})...`)
+    const hash = await wc.writeContract({
+      address: ammAddress,
+      abi: marketAbi,
+      functionName: 'resolve',
+      args: [outcome]
+    })
+    
+    console.log('⏳ Transaction submitted:', hash)
+    console.log('⏳ Waiting for confirmation...')
+    
+    const receipt = await pc.waitForTransactionReceipt({ hash })
+    
+    if (receipt.status === 'success') {
+      console.log('✅ Market resolved successfully!')
+      
+      // Verify resolution
+      const newOutcome = await pc.readContract({ 
+        address: ammAddress, 
+        abi: marketAbi, 
+        functionName: 'outcome' 
+      })
+      console.log('🎉 New outcome:', newOutcome, newOutcome === 1 ? '(YES WINS)' : '(NO WINS)')
+    } else {
+      console.log('❌ Transaction failed!')
+    }
+    
+  } catch (error) {
+    console.error('❌ Error resolving market:', error.message)
+  }
+}
+
+// Usage: resolve market with outcome (1 = YES wins, 2 = NO wins)
+const ammAddress = '0x3b943c51d1fd2b423a6500c3dbd2874ec122dd3d'
+const outcome = process.argv[2] ? parseInt(process.argv[2]) : 1 // Default: YES wins
+
+await resolveMarket(ammAddress, outcome)

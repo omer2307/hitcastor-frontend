@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import WalletButton from "@/components/WalletButton";
 
 interface HeaderProps {
   onLoginClick?: () => void;
@@ -140,6 +141,7 @@ export const Header = ({ onLoginClick, onSignUpClick, onDepositClick }: HeaderPr
             </>
           ) : (
             <>
+              <WalletButton />
               <Button variant="ghost" size="sm" onClick={onLoginClick}>
                 Log In
               </Button>
