@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWalletClient, useChainId, useConnect, useDisconnect, useConfig } from 'wagmi'
 import { writeContract } from '@wagmi/core'
-import { parseUnits } from 'viem'
+import { TokenUtils, TokenType } from 'hitcastor-sdk'
 import { injected } from 'wagmi/connectors'
+import { bscTestnet } from 'viem/chains'
 
 // Simple hardcoded test - bypassing quote token resolution
 const HARDCODED_QUOTE_TOKEN = '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd' // USDT on BSC Testnet
@@ -60,7 +61,7 @@ export default function TradeTest() {
     
     try {
       // Simple ERC20 approve using basic viem
-      const amount = parseUnits('1000', 18) // 1000 tokens
+      const amount = TokenUtils.parseQuote('1000') // 1000 tokens
       
       console.log('🔄 Calling writeContract...')
       
@@ -79,7 +80,9 @@ export default function TradeTest() {
           }
         ],
         functionName: 'approve',
-        args: [HARDCODED_AMM, amount]
+        args: [HARDCODED_AMM, amount],
+        chain: bscTestnet,
+        account: address!
       })
       
       console.log('✅ Approve success! Hash:', hash)
@@ -108,7 +111,7 @@ export default function TradeTest() {
     setBusy(true)
     
     try {
-      const amount = parseUnits('1000', 18)
+      const amount = TokenUtils.parseQuote('1000')
       console.log('🔄 Calling writeContract from wagmi/core...')
       
       const hash = await writeContract(config, {
@@ -126,7 +129,9 @@ export default function TradeTest() {
           }
         ],
         functionName: 'approve',
-        args: [HARDCODED_AMM, amount]
+        args: [HARDCODED_AMM, amount],
+        chain: bscTestnet,
+        account: address!
       })
       
       console.log('✅ Approve success! Hash:', hash)

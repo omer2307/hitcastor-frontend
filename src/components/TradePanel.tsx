@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useAccount, useConfig } from 'wagmi'
-import { Address, parseUnits, isAddress, createPublicClient, http } from 'viem'
+import { Address, isAddress, createPublicClient, http } from 'viem'
 import { bscTestnet } from 'viem/chains'
 import { 
   getDecimals, 
@@ -11,6 +11,7 @@ import {
   redeemTo,
   readQuoteTokenAddress 
 } from '@/lib/trade'
+import { TokenUtils, TokenType } from 'hitcastor-sdk'
 
 const pc = createPublicClient({ chain: bscTestnet, transport: http(import.meta.env.VITE_RPC_URL || 'https://bsc-testnet-dataseed.bnbchain.org') })
 
@@ -61,8 +62,12 @@ export default function TradePanel({ marketId, ammAddress, quoteToken, finalized
   }
 
   const amountIn = useMemo(()=>{
-    try { return parseUnits(amt || '0', decimals) } catch { return 0n }
-  }, [amt, decimals])
+    try { 
+      // Detect token type - default to QUOTE if unknown
+      const tokenType = quoteToken === 'USDT' ? TokenType.USDT : TokenType.QUOTE;
+      return parseTokenAmount(amt || '0', tokenType);
+    } catch { return 0n }
+  }, [amt, quoteToken])
 
   // Resolve quote token address (if API returns symbol like "USDT")
   useEffect(() => {
@@ -172,7 +177,8 @@ export default function TradePanel({ marketId, ammAddress, quoteToken, finalized
     setBusy(true)
     try{
       // Approve only 5 USDT for testing (don't waste your 10 USDT!)
-      const big = parseUnits('5', decimals)
+      const tokenType = quoteToken === 'USDT' ? TokenType.USDT : TokenType.QUOTE;
+      const big = parseTokenAmount('5', tokenType)
       console.log('💰 Approving amount:', big.toString(), '(5 USDT for testing)')
       console.log('🔄 Calling approve...')
       const tx = await approve(config, quoteTokenAddress, ammAddress as Address, big)

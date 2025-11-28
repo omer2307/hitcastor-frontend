@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch'
 import { Minus, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { approve, swapQuoteForYes, swapQuoteForNo, getAllowance, readQuoteTokenAddress, redeemTo, getMarketOutcome, getMarketOutcomeFromAPI, hasUserRedeemed, getTokenBalance, getTokenAddresses } from '@/lib/trade'
-import { parseUnits, formatUnits, Address } from 'viem'
+import { Address } from 'viem'
+import { TokenUtils, TokenType, parseTokenAmount } from 'hitcastor-sdk'
 
 interface BlockchainTradingPanelProps {
   marketId: string
@@ -154,7 +155,7 @@ export function BlockchainTradingPanel({
   }, [isConnected, address, ammAddress, yesToken, noToken])
 
   const tradeAmount = shares * (betType === 'yes' ? yesPrice : noPrice) / 100
-  const needsApproval = quoteTokenAddress && allowance < parseUnits(tradeAmount.toString(), 18)
+  const needsApproval = quoteTokenAddress && allowance < TokenUtils.parseQuote(tradeAmount.toString())
   
   // Check market state for UI logic
   const now = new Date()
@@ -177,7 +178,7 @@ export function BlockchainTradingPanel({
 
     setIsApproving(true)
     try {
-      const amount = parseUnits('1000', 18) // Approve 1000 tokens
+      const amount = TokenUtils.parseQuote('1000') // Approve 1000 tokens
       await approve(config, quoteTokenAddress, ammAddress, amount)
       
       // Update allowance
@@ -221,7 +222,7 @@ export function BlockchainTradingPanel({
 
     setIsTrading(true)
     try {
-      const amount = parseUnits(tradeAmount.toString(), 18)
+      const amount = TokenUtils.parseQuote(tradeAmount.toString())
       const minOut = 0n // For simplicity, no slippage protection in UI
       
       if (betType === 'yes') {
@@ -427,7 +428,7 @@ export function BlockchainTradingPanel({
           ) : canRedeem ? (
             <div className="space-y-3">
               <div className="text-sm text-center text-muted-foreground">
-                Market ended • {hasTokens && `You have ${formatUnits(yesBalance, 18)} YES, ${formatUnits(noBalance, 18)} NO tokens`}
+                Market ended • {hasTokens && `You have ${TokenUtils.formatYES(yesBalance)} YES, ${TokenUtils.formatNO(noBalance)} NO tokens`}
               </div>
               <Button 
                 className="w-full h-12 rounded-xl font-semibold text-base bg-green-600 hover:bg-green-700" 
@@ -449,7 +450,7 @@ export function BlockchainTradingPanel({
               </div>
               {hasTokens && (
                 <div className="text-xs text-center text-muted-foreground">
-                  You have {formatUnits(yesBalance, 18)} YES, {formatUnits(noBalance, 18)} NO tokens
+                  You have {TokenUtils.formatYES(yesBalance)} YES, {TokenUtils.formatNO(noBalance)} NO tokens
                 </div>
               )}
             </div>

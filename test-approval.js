@@ -1,5 +1,6 @@
 // Independent test script to debug the approval issue
-import { createPublicClient, createWalletClient, http, parseUnits } from 'viem'
+import { createPublicClient, createWalletClient, http } from 'viem'
+import { TokenUtils, TokenType } from 'hitcastor-sdk'
 import { bscTestnet } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts'
 

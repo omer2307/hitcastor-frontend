@@ -2,7 +2,6 @@ import { Address, erc20Abi, createPublicClient, createWalletClient, http, Hex } 
 import { bscTestnet } from 'viem/chains'
 import { writeContract } from '@wagmi/core'
 import { Config } from 'wagmi'
-import ERC20 from 'hitcastor-sdk/dist/chain/abi/ERC20_MIN.json'
 import MarketAbi from 'hitcastor-sdk/dist/chain/abi/Market.json'
 
 const chain = bscTestnet // BSC Testnet - FREE for testing
@@ -33,7 +32,7 @@ export async function readQuoteTokenAddress(amm: Address): Promise<Address> {
 
 export async function getDecimals(token: Address): Promise<number> {
   try {
-    const d = await pc.readContract({ address: token, abi: ERC20 as any, functionName: 'decimals' })
+    const d = await pc.readContract({ address: token, abi: erc20Abi, functionName: 'decimals' })
     return Number(d)
   } catch {
     return 18
@@ -42,13 +41,13 @@ export async function getDecimals(token: Address): Promise<number> {
 
 export async function getAllowance(token: Address, owner: Address, spender: Address){
   try {
-    const a = await pc.readContract({ address: token, abi: ERC20 as any, functionName: 'allowance', args: [owner, spender] })
+    const a = await pc.readContract({ address: token, abi: erc20Abi, functionName: 'allowance', args: [owner, spender] })
     return BigInt(a as any)
   } catch { return 0n }
 }
 
 export async function approve(config: Config, token: Address, spender: Address, amount: bigint){
-  const hash = await writeContract(config, { address: token, abi: ERC20 as any, functionName: 'approve', args: [spender, amount] })
+  const hash = await writeContract(config, { address: token, abi: erc20Abi, functionName: 'approve', args: [spender, amount] })
   console.log('🔄 Approve tx submitted, waiting for confirmation...', hash)
   
   // Wait for transaction to be mined

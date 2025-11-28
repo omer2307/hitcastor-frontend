@@ -1,5 +1,6 @@
 import WalletButton from '@/components/WalletButton'
 import TradePanel from '@/components/TradePanel'
+import { SingleTxTradingPanel } from '@/components/SingleTxTradingPanel'
 import { useMarket } from '@/hooks/useMarket'
 import { useParams } from 'react-router-dom'
 
@@ -46,12 +47,29 @@ export default function MarketPage(){
             </div>
           </div>
 
+          {/* Standard Trading Panel (Active) */}
           <TradePanel
             marketId={id}
             ammAddress={data.ammAddress as `0x${string}`}
             quoteToken={data.quoteToken}
             finalized={!!data.finalized}
           />
+          
+          {/* Single-Transaction Trading Panel (Disabled for now) */}
+          {false && (
+            <SingleTxTradingPanel
+              marketId={id.toString()}
+              ammAddress={data.ammAddress as `0x${string}`}
+              quoteToken={data.quoteToken}
+              yesPrice={data.reserves?.priceYes ?? 0.5}
+              noPrice={data.reserves?.priceNo ?? 0.5}
+              cutoffUtc={data.cutoffUtc || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()}
+              onTradeSuccess={() => {
+                // Refresh market data after successful trade
+                window.location.reload()
+              }}
+            />
+          )}
         </div>
       )}
     </main>
